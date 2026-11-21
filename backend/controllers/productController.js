@@ -1,0 +1,77 @@
+const mongoose = require("mongoose");
+const Product = require("../models/Product");
+
+// Keep only the allowed fields from the request body
+const pick = (body) => {
+  const fields = ["name", "description", "price", "category", "imageUrl", "stock"];
+  const data = {};
+  fields.forEach((f) => {
+    if (body[f] !== undefined) data[f] = body[f];
+  });
+  return data;
+};
+
+const invalidId = (res) =>
+  res.status(400).json({ success: false, message: "Invalid product ID" });
+
+// GET /api/products
+exports.getProducts = async (req, res, next) => {
+  try {
+    const products = await Product.find();
+    res.status(200).json(products);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/products/:id
+exports.getProduct = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return invalidId(res);
+    const product = await Product.findById(req.params.id);
+    if (!product)
+      return res.status(404).json({ success: false, message: "Product not found" });
+    res.status(200).json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/products (protected)
+exports.createProduct = async (req, res, next) => {
+  try {
+    const product = await Product.create(pick(req.body));
+    res.status(201).json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PUT /api/products/:id (protected)
+exports.updateProduct = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return invalidId(res);
+    const product = await Product.findByIdAndUpdate(req.params.id, pick(req.body), {
+      new: true,
+      runValidators: true,
+    });
+    if (!product)
+      return res.status(404).json({ success: false, message: "Product not found" });
+    res.status(200).json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/products/:id (protected)
+exports.deleteProduct = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return invalidId(res);
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product)
+      return res.status(404).json({ success: false, message: "Product not found" });
+    res.status(200).json({ success: true, message: "Product deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
