@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { categories } from "../data/products";
-import { fetchProducts, createProduct, deleteProduct } from "../api/productService";
+import { fetchProducts, createProduct, updateProduct, deleteProduct } from "../api/productService";
 import { addToCart } from "../store/cartSlice";
 import { toggleFavorite, selectFavoriteIds } from "../store/favoritesSlice";
 
@@ -49,6 +49,17 @@ export function ProductCard({ product, onSelect, onChanged }) {
   // Local state: image failed to load?
   const [imgError, setImgError] = useState(false);
 
+  // Local state: edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    category: product.category,
+    imageUrl: product.image,
+    stock: product.stock,
+  });
+
   const discount = product.oldPrice
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : null;
@@ -63,6 +74,100 @@ export function ProductCard({ product, onSelect, onChanged }) {
       alert("Could not delete product. Please try again.");
     }
   };
+
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    setIsEditing(true);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditData({ ...editData, [field]: value });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      await updateProduct(product.id, {
+        ...editData,
+        price: Number(editData.price),
+        stock: Number(editData.stock),
+      });
+      setIsEditing(false);
+      onChanged();
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not update product.");
+    }
+  };
+
+  const handleEditCancel = (e) => {
+    e.stopPropagation();
+    setIsEditing(false);
+    setEditData({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      imageUrl: product.image,
+      stock: product.stock,
+    });
+  };
+
+  // Edit mode: show a form instead of the normal card content
+  if (isEditing) {
+    return (
+      <article className="card">
+        <div className="card-body">
+          <form onSubmit={handleEditSubmit} style={{ display: "grid", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
+            <input
+              value={editData.name}
+              onChange={(e) => handleEditChange("name", e.target.value)}
+              placeholder="Name"
+              required
+            />
+            <input
+              value={editData.description}
+              onChange={(e) => handleEditChange("description", e.target.value)}
+              placeholder="Description"
+              required
+            />
+            <input
+              type="number"
+              value={editData.price}
+              onChange={(e) => handleEditChange("price", e.target.value)}
+              placeholder="Price"
+              required
+            />
+            <select
+              value={editData.category}
+              onChange={(e) => handleEditChange("category", e.target.value)}
+            >
+              <option>Clothes</option>
+              <option>Accessories</option>
+              <option>Shoes</option>
+            </select>
+            <input
+              value={editData.imageUrl}
+              onChange={(e) => handleEditChange("imageUrl", e.target.value)}
+              placeholder="Image URL"
+              required
+            />
+            <input
+              type="number"
+              value={editData.stock}
+              onChange={(e) => handleEditChange("stock", e.target.value)}
+              placeholder="Stock"
+              required
+            />
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button type="submit" className="add-btn">Save</button>
+              <button type="button" className="remove" onClick={handleEditCancel}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className="card" onClick={() => onSelect(product)}>
@@ -118,9 +223,14 @@ export function ProductCard({ product, onSelect, onChanged }) {
         </button>
 
         {isLoggedIn && (
-          <button className="remove" style={{ marginTop: "8px" }} onClick={handleDelete}>
-            Delete product
-          </button>
+          <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+            <button className="mini-btn" onClick={handleEditClick} style={{ flex: 1 }}>
+              Edit
+            </button>
+            <button className="remove" onClick={handleDelete} style={{ flex: 1 }}>
+              Delete
+            </button>
+          </div>
         )}
       </div>
     </article>
@@ -155,7 +265,6 @@ export function ProductList({ onSelect }) {
     setError(null);
     fetchProducts()
       .then((res) => {
-        // Normalize MongoDB's _id/imageUrl to the id/image fields used everywhere else
         const normalized = res.data.map((p) => ({
           ...p,
           id: p._id,
@@ -212,7 +321,11 @@ export function ProductList({ onSelect }) {
 
       {isLoggedIn && (
         <div style={{ marginBottom: "24px" }}>
-	<button className="add-btn" onClick={() => setShowAddForm(!showAddForm)} style={{ width: "auto", padding:"10px 24px" }}>
+          <button
+            className="add-btn"
+            onClick={() => setShowAddForm(!showAddForm)}
+            style={{ width: "auto", padding: "10px 24px" }}
+          >
             {showAddForm ? "Cancel" : "+ Add product"}
           </button>
           {showAddForm && (
