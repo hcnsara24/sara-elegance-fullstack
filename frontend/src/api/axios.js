@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://sara-elegance-fullstack.onrender.com/",
+  baseURL: "https://sara-elegance-fullstack.onrender.com",
 });
 
 // Attach the JWT automatically if the user is logged in
