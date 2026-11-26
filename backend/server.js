@@ -9,7 +9,7 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: ["http://localhost:5173", "https://hcnsara24.github.io"] }));
 app.use(express.json());
 
 // General rate limit on all /api routes

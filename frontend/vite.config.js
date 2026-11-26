@@ -3,6 +3,11 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/sara-elegance/",
+  base: "/sara-elegance-fullstack/",
   plugins: [react()],
 })
+
+
+
+
+
