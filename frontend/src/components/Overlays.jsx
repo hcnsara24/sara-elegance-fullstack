@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { products } from "../data/products";
+import api from "../api/axios";
 import {
   addToCart,
   removeFromCart,
@@ -85,15 +85,39 @@ export function Cart({ open, onClose }) {
 export function FavoritesPanel({ open, onClose }) {
   const dispatch = useDispatch();
   const ids = useSelector(selectFavoriteIds);
+
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    api.get("/products")
+      .then((res) => {
+        const normalized = res.data.map((p) => ({
+          ...p,
+          id: p._id,
+          image: p.imageUrl,
+        }));
+        setProducts(normalized);
+      })
+      .catch((error) => {
+        console.error("Could not load favorites products:", error);
+      });
+  }, []);
+
   const favorites = products.filter((p) => ids.includes(p.id));
 
   return (
     <>
-      <div className={open ? "overlay show" : "overlay"} onClick={onClose} />
+      <div
+        className={open ? "overlay show" : "overlay"}
+        onClick={onClose}
+      />
+
       <aside className={open ? "cart open" : "cart"}>
         <div className="cart-head">
           <h2>Your Favorites ♥</h2>
-          <button className="close" onClick={onClose}>✕</button>
+          <button className="close" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         <div className="cart-content">
@@ -110,14 +134,23 @@ export function FavoritesPanel({ open, onClose }) {
                   className="fav-thumb"
                   onError={(e) => (e.currentTarget.style.display = "none")}
                 />
+
                 <div className="cart-item-info">
                   <h4>{p.name}</h4>
                   <p>{p.price.toLocaleString()} DA</p>
-                  <button className="mini-btn" onClick={() => dispatch(addToCart(p))}>
+
+                  <button
+                    className="mini-btn"
+                    onClick={() => dispatch(addToCart(p))}
+                  >
                     Add to cart
                   </button>
                 </div>
-                <button className="remove" onClick={() => dispatch(toggleFavorite(p.id))}>
+
+                <button
+                  className="remove"
+                  onClick={() => dispatch(toggleFavorite(p.id))}
+                >
                   Remove
                 </button>
               </div>
